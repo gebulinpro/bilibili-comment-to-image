@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         B站评论转图片发布
-// @namespace    https://github.com/gebulinpro/HakimiBrowser
+// @namespace    https://github.com/gebulinpro/bilibili-comment-to-image
 // @version      1.4.0
 // @description  在 B 站评论区「发布」按钮旁添加「🖼️ 转图发布」，把评论框里的文字渲染成图片后以图片评论发布（穿透 Shadow DOM，纯前端调 B 站官方接口）
 // @author       gebulinpro
