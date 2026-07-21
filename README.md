@@ -13,8 +13,10 @@
 ## 安装
 
 1. 安装 [Tampermonkey](https://www.tampermonkey.net/) 等用户脚本管理器。
-2. 打开本仓库的 `bilibili-comment-to-image.user.js` → 点击 **Raw** → 安装。
-3. 打开任意 B 站视频 / 动态，评论框「发布」按钮右侧会出现粉色「🖼️ 转图发布」。
+2. 点击 Tampermonkey 图标 → 「管理面板」→ 顶部「+ 新建脚本」，清空默认模板。
+3. 打开本仓库的 [`bilibili-comment-to-image.user.js`](bilibili-comment-to-image.user.js)，全选复制其全部内容，粘贴进新建脚本编辑器。
+4. 按 `Ctrl/Cmd + S` 保存，确保脚本处于启用状态。
+5. 打开任意 B 站视频 / 动态，评论框「发布」按钮右侧会出现粉色「🖼️ 转图发布」。
 
 ## 使用
 
