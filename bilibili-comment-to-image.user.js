@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         B站评论转图片发布
 // @namespace    https://github.com/gebulinpro/bilibili-comment-to-image
-// @version      1.4.1
+// @version      1.4.2
 // @description  在 B 站评论区「发布」按钮旁添加「🖼️ 转图发布」，把评论框里的文字渲染成图片后以图片评论发布（穿透 Shadow DOM，纯前端调 B 站官方接口）
 // @author       gebulinpro
 // @match        https://www.bilibili.com/video/*
@@ -24,6 +24,9 @@
   const TOAST_ID = "c2i-toast";
   // B站粉
   const ACCENT = "#fb7299";
+  // 视觉空白填充：用盲文空白格(U+2800)替代固定文字，用户看到空白、服务端视为非空字符，
+  // 借此绕开 B 站「不可发送空白内容」(12066) 的服务端校验（零宽字符会被服务端剥离，故不可用）
+  const EMPTY_FILLER = "\u2800";
 
   /* ============== Shadow DOM 穿透 ============== */
   // 递归查询所有 shadow root 里匹配 selector 的元素
@@ -361,8 +364,8 @@
       btn.textContent = "发布中…";
       const { oid, type } = getOidType();
       if (!oid) throw new Error("无法识别当前视频/动态 oid，请在视频页使用");
-      // 正文固定为「文字转图片」，评论内容只出现在图片里，不进正文
-      await postImageReply(oid, type, pic, "文字转图片");
+      // 正文用视觉空白字符填充（用户看到空白，服务端视为非空），评论内容只出现在图片里
+      await postImageReply(oid, type, pic, EMPTY_FILLER);
 
       clearCommentBox(box);
       toast("✅ 已发布图片评论，刷新评论区可见", "ok");
