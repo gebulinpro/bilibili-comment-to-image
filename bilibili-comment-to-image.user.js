@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         B站评论转图片发布
 // @namespace    https://github.com/gebulinpro/bilibili-comment-to-image
-// @version      1.4.0
+// @version      1.4.1
 // @description  在 B 站评论区「发布」按钮旁添加「🖼️ 转图发布」，把评论框里的文字渲染成图片后以图片评论发布（穿透 Shadow DOM，纯前端调 B 站官方接口）
 // @author       gebulinpro
 // @match        https://www.bilibili.com/video/*
@@ -113,16 +113,13 @@
     return { oid: 0, type: 1 };
   }
 
-  /* ============== 把文字渲染成 PNG Blob（美观卡片） ============== */
+  /* ============== 把文字渲染成 PNG Blob（纯白简洁卡片） ============== */
   function textToImage(text) {
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const margin = 28;              // 卡片外阴影留白
     const maxW = 600;               // 正文最大宽度
-    const padX = 26, padY = 22;     // 正文内边距
-    const headerH = 48;             // 顶部品牌条高度
-    const footerH = 40;             // 底部条高度
+    const padX = 24, padY = 20;     // 内边距
     const fontSize = 19;
-    const lineHeight = Math.round(fontSize * 1.75);
+    const lineHeight = Math.round(fontSize * 1.7);
 
     const fontStr = fontSize + 'px "PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif';
     const measure = document.createElement("canvas").getContext("2d");
@@ -147,11 +144,8 @@
     lines.forEach((l) => { contentW = Math.max(contentW, Math.ceil(measure.measureText(l).width)); });
     contentW = Math.min(contentW, maxW);
 
-    const cardW = contentW + padX * 2;
-    const bodyH = padY + lines.length * lineHeight + 6;
-    const cardH = headerH + bodyH + footerH;
-    const W = cardW + margin * 2;
-    const H = cardH + margin * 2;
+    const W = contentW + padX * 2;
+    const H = padY * 2 + lines.length * lineHeight;
 
     const cv = document.createElement("canvas");
     cv.width = W * dpr;
@@ -159,95 +153,27 @@
     const ctx = cv.getContext("2d");
     ctx.scale(dpr, dpr);
 
-    const X = margin, Y = margin, r = 18;
-    function roundRect(x, y, w, h, rad) {
-      ctx.beginPath();
-      ctx.moveTo(x + rad, y);
-      ctx.arcTo(x + w, y, x + w, y + h, rad);
-      ctx.arcTo(x + w, y + h, x, y + h, rad);
-      ctx.arcTo(x, y + h, x, y, rad);
-      ctx.arcTo(x, y, x + w, y, rad);
-      ctx.closePath();
-    }
-
-    // 卡片柔和投影
-    ctx.save();
-    ctx.shadowColor = "rgba(251,114,153,0.22)";
-    ctx.shadowBlur = 26;
-    ctx.shadowOffsetY = 10;
-    roundRect(X, Y, cardW, cardH, r);
+    // 纯白圆角卡片 + 细描边（简洁规整，仅评论文字，无品牌/日期/水印）
+    const r = 16;
+    ctx.beginPath();
+    ctx.moveTo(r, 0);
+    ctx.arcTo(W, 0, W, H, r);
+    ctx.arcTo(W, H, 0, H, r);
+    ctx.arcTo(0, H, 0, 0, r);
+    ctx.arcTo(0, 0, W, 0, r);
+    ctx.closePath();
     ctx.fillStyle = "#ffffff";
     ctx.fill();
-    ctx.restore();
-
-    // 裁剪到卡片圆角，分别绘制头部渐变与正文淡粉背景
-    ctx.save();
-    roundRect(X, Y, cardW, cardH, r);
-    ctx.clip();
-
-    const bgGrad = ctx.createLinearGradient(0, Y + headerH, 0, Y + cardH);
-    bgGrad.addColorStop(0, "#ffffff");
-    bgGrad.addColorStop(1, "#fff6fa");
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(X, Y + headerH, cardW, cardH - headerH);
-
-    const hdGrad = ctx.createLinearGradient(X, Y, X + cardW, Y);
-    hdGrad.addColorStop(0, "#fb7299");
-    hdGrad.addColorStop(1, "#ff9ebb");
-    ctx.fillStyle = hdGrad;
-    ctx.fillRect(X, Y, cardW, headerH);
-    ctx.restore();
-
-    // 卡片描边
-    roundRect(X, Y, cardW, cardH, r);
     ctx.lineWidth = 1;
-    ctx.strokeStyle = "#f4d7e3";
+    ctx.strokeStyle = "#e5e7eb";
     ctx.stroke();
 
-    // 头部：左侧标题 + 右侧日期
-    const now = new Date();
-    const dateStr = (now.getMonth() + 1) + "-" + String(now.getDate()).padStart(2, "0");
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = "#ffffff";
-    ctx.font = '600 15px "PingFang SC","Microsoft YaHei",sans-serif';
-    ctx.fillText("💬 评论转图", X + 18, Y + headerH / 2 + 1);
-    ctx.font = '13px "PingFang SC","Microsoft YaHei",sans-serif';
-    ctx.globalAlpha = 0.85;
-    ctx.textAlign = "right";
-    ctx.fillText(dateStr, X + cardW - 18, Y + headerH / 2 + 1);
-    ctx.globalAlpha = 1;
-    ctx.textAlign = "left";
-
-    // 正文
+    // 正文（仅评论文字）
     ctx.fillStyle = "#1f2329";
     ctx.font = fontStr;
     ctx.textBaseline = "top";
-    let ty = Y + headerH + padY;
-    lines.forEach((l) => { ctx.fillText(l, X + padX, ty); ty += lineHeight; });
-
-    // 底部：分隔线 + 品牌
-    const fy = Y + headerH + bodyH;
-    ctx.strokeStyle = "#f0e6ec";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(X + 16, fy);
-    ctx.lineTo(X + cardW - 16, fy);
-    ctx.stroke();
-
-    ctx.textBaseline = "middle";
-    const footY = Y + cardH - footerH / 2;
-    ctx.fillStyle = ACCENT;
-    ctx.beginPath();
-    ctx.arc(X + 24, footY, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#9499a0";
-    ctx.font = '12px "PingFang SC","Microsoft YaHei",sans-serif';
-    ctx.fillText("B站评论转图", X + 34, footY + 1);
-    ctx.textAlign = "right";
-    ctx.globalAlpha = 0.7;
-    ctx.fillText("哈基米浏览器", X + cardW - 18, footY + 1);
-    ctx.globalAlpha = 1;
-    ctx.textAlign = "left";
+    let y = padY;
+    lines.forEach((l) => { ctx.fillText(l, padX, y); y += lineHeight; });
 
     return new Promise((resolve) => cv.toBlob((b) => resolve(b), "image/png"));
   }
